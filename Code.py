@@ -489,32 +489,26 @@ async function skip(){await fetch('/api/pending/skip',{method:'POST'});location=
 init();
 </script>"""
 
-PICK_HTML = CSS + """<title>Quét & chọn chữ</title>
-<h3>QUÉT &amp; CHỌN CHỮ <a href="/" style="font-size:13px">[Về trang chính]</a></h3>
-<div class="small">Hệ thống tự động chụp &amp; quét mỗi vài giây — bấm vào từng chữ (khung xanh) trên ảnh để ghép vào ô "Đã chọn" (việc này sẽ tạm dừng tự động quét). Bấm "GỬI VỀ TÌM KIẾM" để gửi kết quả về trang đã mở cửa sổ này.</div>
+PICK_HTML = CSS + """<title>Quét tự động</title>
+<h3>QUÉT TỰ ĐỘNG <a href="/" style="font-size:13px">[Về trang chính]</a></h3>
+<div class="small">Bấm "BẮT ĐẦU QUÉT" khi đã đưa nhãn vào khung hình. Hệ thống sẽ tự chụp &amp; quét lặp lại, khi nhận diện được chữ sẽ tự gửi toàn bộ về ô tìm kiếm, không cần bấm gì thêm.</div>
 <img id="live" src="/video_feed" style="width:100%;max-width:900px;border-radius:8px;background:#000">
 <canvas id="cv" style="display:none"></canvas>
 <div class="box">
-<div class="row"><label>Đã chọn</label><input id="sel" readonly></div>
-<button onclick="capture()">CHỤP &amp; QUÉT NGAY</button>
-<button class="gray" onclick="showLive()">XEM TRỰC TIẾP &amp; TỰ QUÉT</button>
-<button class="gray" onclick="clearSel()">XOÁ</button>
-<button onclick="send()">GỬI VỀ TÌM KIẾM</button>
-<div id="msg" class="small"></div>
+<button onclick="startScan()">BẮT ĐẦU QUÉT</button>
+<div id="msg" class="small">Chưa bắt đầu. Bấm "BẮT ĐẦU QUÉT" để quét.</div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
 const AUTO_DELAY_MS=3000;
-let dets=[],img=new Image(),scale=1,hit=new Set(),selected=[],curW=0,curH=0;
-let autoTimer=null,busy=false;
-function draw(){const cv=$('cv'),ctx=cv.getContext('2d');
-scale=Math.min(900/curW,1);cv.width=curW*scale;cv.height=curH*scale;
-ctx.drawImage(img,0,0,cv.width,cv.height);ctx.lineWidth=2;
-dets.forEach((d,i)=>{const[b0,b1,b2,b3]=d.box.map(v=>v*scale);
-ctx.strokeStyle=hit.has(i)?'#ffaa00':'#00ff88';ctx.strokeRect(b0,b1,b2-b0,b3-b1);});}
+let img=new Image(),autoTimer=null,busy=false,sent=false;
+function draw(dets,w,h){const cv=$('cv'),ctx=cv.getContext('2d');
+const scale=Math.min(900/w,1);cv.width=w*scale;cv.height=h*scale;
+ctx.drawImage(img,0,0,cv.width,cv.height);ctx.lineWidth=2;ctx.strokeStyle='#00ff88';
+dets.forEach(d=>{const[b0,b1,b2,b3]=d.box.map(v=>v*scale);ctx.strokeRect(b0,b1,b2-b0,b3-b1);});}
 function stopAuto(){if(autoTimer){clearTimeout(autoTimer);autoTimer=null;}}
-function scheduleAuto(delay){stopAuto();autoTimer=setTimeout(autoCapture,delay);}
-function showLive(){$('cv').style.display='none';$('live').style.display='';scheduleAuto(0);}
+function scheduleAuto(delay){if(sent)return;stopAuto();autoTimer=setTimeout(autoCapture,delay);}
+function startScan(){$('msg').textContent='Đang quét...';scheduleAuto(0);}
 async function doCapture(){
 try{const r=await fetch('/api/pick/capture',{method:'POST'});
 if(r.status===401){location='/login';return null}
@@ -522,35 +516,24 @@ const d=await r.json();
 if(!r.ok){$('msg').textContent=d.message||'Không lấy được khung hình.';return null}
 return d;
 }catch(e){$('msg').textContent='Lỗi: '+e;return null}}
-function applyResult(d){dets=d.dets;hit=new Set();curW=d.w;curH=d.h;
-img.onload=()=>{$('live').style.display='none';$('cv').style.display='';draw();};img.src=d.image;
-$('msg').textContent=dets.length?('Tìm thấy '+dets.length+' chữ. Bấm vào chữ muốn chọn.')
-                                 :'Không nhận diện được chữ nào trong khung hình.';}
-async function autoCapture(){if(busy)return;busy=true;
-$('msg').textContent='Đang quét...';
-const d=await doCapture();busy=false;
-if(!d){scheduleAuto(AUTO_DELAY_MS);return}
-applyResult(d);
-scheduleAuto(AUTO_DELAY_MS);}
-async function capture(){if(busy)return;stopAuto();busy=true;
-$('msg').textContent='Đang quét...';
-const d=await doCapture();busy=false;
-if(!d){scheduleAuto(AUTO_DELAY_MS);return}
-applyResult(d);}
-$('cv').addEventListener('click',e=>{if(!dets.length)return;
-stopAuto();
-const r=$('cv').getBoundingClientRect();
-const x=(e.clientX-r.left)*($('cv').width/r.width)/scale,y=(e.clientY-r.top)*($('cv').height/r.height)/scale;
-let best=-1,area=1e18;dets.forEach((d,i)=>{const[a,b,c,f]=d.box;
-if(x>=a&&x<=c&&y>=b&&y<=f&&(c-a)*(f-b)<area){area=(c-a)*(f-b);best=i}});
-if(best>=0){selected.push(dets[best].text);hit.add(best);$('sel').value=selected.join(' ');draw();}});
-function clearSel(){selected=[];hit=new Set();$('sel').value='';if(dets.length)draw();}
-function send(){const text=$('sel').value.trim();
-if(!text){$('msg').textContent='Chưa chọn chữ nào.';return}
+function sendAll(text){sent=true;stopAuto();
 const origin=document.referrer?new URL(document.referrer).origin:'*';
 if(window.opener){window.opener.postMessage({type:'ocr-pick-text',text:text},origin);window.close();}
-else{$('msg').textContent='Không tìm thấy cửa sổ gốc để gửi. Hãy copy: '+text;}}
-scheduleAuto(0);
+else{$('msg').textContent='Không tìm thấy cửa sổ gốc để gửi. Kết quả: '+text;}}
+async function autoCapture(){if(busy||sent)return;busy=true;
+$('msg').textContent='Đang quét...';
+const d=await doCapture();busy=false;
+if(!d){scheduleAuto(AUTO_DELAY_MS);return}
+img.onload=()=>{$('live').style.display='none';$('cv').style.display='';draw(d.dets,d.w,d.h);};img.src=d.image;
+if(!d.dets.length){$('msg').textContent='Không nhận diện được chữ nào, đang quét lại...';scheduleAuto(AUTO_DELAY_MS);return}
+// sắp xếp theo thứ tự đọc: trên->dưới (theo hàng), trong hàng thì trái->phải
+const ordered=d.dets.slice().sort((a,b)=>{
+const ay=(a.box[1]+a.box[3])/2,by=(b.box[1]+b.box[3])/2;
+if(Math.abs(ay-by)>15)return ay-by;
+return a.box[0]-b.box[0];});
+const text=ordered.map(x=>x.text).join(' ');
+$('msg').textContent='Tìm thấy: '+text+' — đang gửi về tìm kiếm...';
+sendAll(text);}
 </script>"""
 
 PRODUCTS_HTML = CSS + """<title>Danh sách kho</title>
