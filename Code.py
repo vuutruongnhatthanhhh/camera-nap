@@ -383,14 +383,10 @@ def get_lan_ip():
         s.close()
 
 def login_required(fn):
-    @wraps(fn)
-    def wrapper(*a, **kw):
-        if not session.get("auth"):
-            if request.path.startswith("/api/"):
-                return jsonify(error="unauthorized"), 401
-            return redirect(url_for("login", next=request.path))
-        return fn(*a, **kw)
-    return wrapper
+    # Đã tắt yêu cầu đăng nhập theo yêu cầu - ứng dụng chỉ chạy trong mạng
+    # LAN nội bộ (đã giới hạn bằng firewall ở dải 192.168.1.0/24), không cần
+    # xác thực thêm ở tầng ứng dụng nữa.
+    return fn
 
 CSS = """<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
