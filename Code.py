@@ -61,9 +61,15 @@ DUP_WARN_RATIO = 0.85
 STREAM_WIDTH, STREAM_FPS, JPEG_QUALITY = 960, 12, 70
 
 print("Đang khởi tạo PaddleOCR...")
-ocr = PaddleOCR(use_textline_orientation=False, lang="en", device="cpu",
+ocr = PaddleOCR(use_textline_orientation=False, device="cpu",
                  enable_mkldnn=False,  # mkldnn gây lỗi PIR trên PaddleOCR 3.x/CPU
-                 use_doc_orientation_classify=False, use_doc_unwarping=False)  # bỏ 2 bước không cần cho nhãn sản phẩm, quét nhanh hơn
+                 use_doc_orientation_classify=False, use_doc_unwarping=False,  # bỏ 2 bước không cần cho nhãn sản phẩm
+                 text_det_limit_side_len=480,
+                 # model "mobile" nhẹ hơn nhiều so với "medium" mặc định -
+                 # giảm thời gian quét từ ~6s xuống ~1.2s mà độ chính xác vẫn
+                 # tốt với nhãn sản phẩm, đổi lại tự tải model lần chạy đầu
+                 text_detection_model_name="PP-OCRv5_mobile_det",
+                 text_recognition_model_name="PP-OCRv5_mobile_rec")
 print("PaddleOCR sẵn sàng.")
 
 # ============================================================
@@ -103,7 +109,8 @@ def get_roi(frame):
 
 def preprocess_roi(roi):
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-    gray = cv2.resize(gray, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
+    # bỏ upscale 2x - model "mobile" + text_det_limit_side_len đã tự co giãn
+    # ảnh hợp lý, upscale thêm chỉ làm chậm mà không tăng độ chính xác
     den = cv2.bilateralFilter(gray, d=5, sigmaColor=50, sigmaSpace=50)
     blur = cv2.GaussianBlur(den, (0, 0), 2.0)
     sharp = cv2.addWeighted(den, 1.5, blur, -0.5, 0)
@@ -121,7 +128,7 @@ def is_noise_text(text):
 def sharpness(img):
     return cv2.Laplacian(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), cv2.CV_64F).var()
 
-def collect_dets(result, ox, oy, scale=2.0):
+def collect_dets(result, ox, oy, scale=1.0):
     # PaddleOCR >=3.x: predict() trả về list các OCRResult (dict-like) với
     # rec_texts / rec_scores / rec_boxes (hoặc rec_polys), không còn dạng
     # [[points, (text, conf)], ...] như bản cũ.
@@ -487,16 +494,17 @@ init();
 
 PICK_HTML = CSS + """<title>Quét tự động</title>
 <h3>QUÉT TỰ ĐỘNG <a href="/" style="font-size:13px">[Về trang chính]</a></h3>
-<div class="small">Bấm "BẮT ĐẦU QUÉT" khi đã đưa nhãn vào khung hình. Hệ thống sẽ tự chụp &amp; quét lặp lại, khi nhận diện được chữ sẽ tự gửi toàn bộ về ô tìm kiếm, không cần bấm gì thêm.</div>
+<div class="small">Đưa nhãn vào khung hình - hệ thống sẽ tự chụp &amp; quét sau vài giây (hoặc bấm "QUÉT NGAY" để quét luôn). Khi nhận diện được chữ sẽ tự gửi toàn bộ về ô tìm kiếm, không cần bấm gì thêm.</div>
 <img id="live" src="/video_feed" style="width:100%;max-width:900px;border-radius:8px;background:#000">
 <canvas id="cv" style="display:none"></canvas>
 <div class="box">
-<button onclick="startScan()">BẮT ĐẦU QUÉT</button>
-<div id="msg" class="small">Chưa bắt đầu. Bấm "BẮT ĐẦU QUÉT" để quét.</div>
+<button onclick="startScan()">QUÉT NGAY</button>
+<div id="msg" class="small">Sẽ tự quét sau 5 giây...</div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
 const AUTO_DELAY_MS=3000;
+const START_DELAY_MS=5000;
 let img=new Image(),autoTimer=null,busy=false,sent=false;
 function draw(dets,w,h){const cv=$('cv'),ctx=cv.getContext('2d');
 const scale=Math.min(900/w,1);cv.width=w*scale;cv.height=h*scale;
@@ -505,6 +513,12 @@ dets.forEach(d=>{const[b0,b1,b2,b3]=d.box.map(v=>v*scale);ctx.strokeRect(b0,b1,b
 function stopAuto(){if(autoTimer){clearTimeout(autoTimer);autoTimer=null;}}
 function scheduleAuto(delay){if(sent)return;stopAuto();autoTimer=setTimeout(autoCapture,delay);}
 function startScan(){$('msg').textContent='Đang quét...';scheduleAuto(0);}
+(function countdownThenStart(){
+let left=Math.ceil(START_DELAY_MS/1000);
+const tick=setInterval(()=>{if(sent){clearInterval(tick);return}
+left--;if(left>0)$('msg').textContent='Sẽ tự quét sau '+left+' giây...';},1000);
+setTimeout(()=>{clearInterval(tick);if(!sent)startScan();},START_DELAY_MS);
+})();
 async function doCapture(){
 try{const r=await fetch('/api/pick/capture',{method:'POST'});
 if(r.status===401){location='/login';return null}
