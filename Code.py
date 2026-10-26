@@ -1,3 +1,4 @@
+import base64
 import csv
 import html
 import os
@@ -504,7 +505,7 @@ PICK_HTML = CSS + """<title>Quét tự động</title>
 <script>
 const $=id=>document.getElementById(id);
 const AUTO_DELAY_MS=3000;
-const START_DELAY_MS=5000;
+const START_DELAY_MS=3000;
 let img=new Image(),autoTimer=null,busy=false,sent=false;
 function draw(dets,w,h){const cv=$('cv'),ctx=cv.getContext('2d');
 const scale=Math.min(900/w,1);cv.width=w*scale;cv.height=h*scale;
@@ -671,11 +672,15 @@ def api_pick_capture():
         with ocr_lock:
             result = ocr.predict(preprocess_roi(roi))
         dets = collect_dets(result, ox, oy)
-        pid = uuid.uuid4().hex[:10]
-        filename = f"PICK_{datetime.now():%Y%m%d_%H%M%S}_{pid}.jpg"
-        cv2.imwrite(os.path.join(IMAGE_DIR, filename), frame)
         h, w = frame.shape[:2]
-        return jsonify(image=url_for("captures", filename=filename), w=w, h=h, dets=dets)
+        # trả ảnh trực tiếp (data URI), không ghi ra product_images - ảnh
+        # này chỉ dùng hiển thị tạm trên trình duyệt rồi bỏ, không ai dùng
+        # lại nên không cần lưu, tránh đầy ổ đĩa theo thời gian
+        ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        if not ok:
+            return jsonify(error="encode_failed", message="Không mã hoá được ảnh."), 500
+        image_data_uri = "data:image/jpeg;base64," + base64.b64encode(buf).decode("ascii")
+        return jsonify(image=image_data_uri, w=w, h=h, dets=dets)
     except Exception as exc:
         print(f"[{datetime.now():%H:%M:%S}] Lỗi /api/pick/capture: {exc}")
         return jsonify(error="capture_failed", message=f"Lỗi khi chụp/nhận diện: {exc}"), 500
