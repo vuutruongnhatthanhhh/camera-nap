@@ -499,25 +499,21 @@ PICK_HTML = CSS + """<title>Quét tự động</title>
 <img id="live" src="/video_feed" style="width:100%;max-width:900px;border-radius:8px;background:#000">
 <canvas id="cv" style="display:none"></canvas>
 <div class="box">
-<div class="row" id="selRow" style="display:none"><label>Đã chọn</label><input id="sel" readonly></div>
 <button onclick="startScan()">QUÉT NGAY</button>
-<button class="gray" id="clearBtn" style="display:none" onclick="clearSel()">XOÁ</button>
-<button id="sendBtn" style="display:none" onclick="sendSelected()">GỬI</button>
 <div id="msg" class="small">Sẽ tự quét sau 3 giây...</div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
 const AUTO_DELAY_MS=3000;
 const START_DELAY_MS=3000;
-// mode=pick: bấm chọn từng chữ trên ảnh rồi bấm GỬI (dùng khi cần điền vào
-// 1 ô cụ thể, VD "Tên hàng"). Mặc định (không có mode): tự gửi toàn bộ chữ
-// nhận diện được ngay khi quét xong, không cần thao tác gì thêm.
+// mode=pick: bấm vào đúng chữ muốn chọn trên ảnh là gửi ngay (dùng khi cần
+// điền vào 1 ô cụ thể, VD "Tên hàng"). Mặc định (không có mode): tự gửi
+// toàn bộ chữ nhận diện được ngay khi quét xong, không cần thao tác gì.
 const PICK_MODE=new URLSearchParams(location.search).get('mode')==='pick';
 if(PICK_MODE){
-$('hint').textContent='Đưa nhãn vào khung hình - hệ thống tự chụp & quét sau vài giây. Bấm vào chữ (khung xanh) trên ảnh để chọn - có thể bấm nhiều chữ, rồi bấm "GỬI".';
-$('selRow').style.display='';$('clearBtn').style.display='';$('sendBtn').style.display='';
+$('hint').textContent='Đưa nhãn vào khung hình - hệ thống tự chụp & quét sau vài giây. Bấm vào đúng chữ (khung xanh) muốn chọn trên ảnh là điền ngay, không cần thao tác gì thêm.';
 }
-let img=new Image(),autoTimer=null,busy=false,sent=false,dets=[],selected=[],hit=new Set(),scale=1,curW=0,curH=0;
+let img=new Image(),autoTimer=null,busy=false,sent=false,dets=[],hit=new Set(),scale=1,curW=0,curH=0;
 function draw(){const cv=$('cv'),ctx=cv.getContext('2d');
 scale=Math.min(900/curW,1);cv.width=curW*scale;cv.height=curH*scale;
 ctx.drawImage(img,0,0,cv.width,cv.height);ctx.lineWidth=2;
@@ -543,16 +539,12 @@ function sendAll(text){sent=true;stopAuto();
 const origin=document.referrer?new URL(document.referrer).origin:'*';
 if(window.opener){window.opener.postMessage({type:'ocr-pick-text',text:text},origin);window.close();}
 else{$('msg').textContent='Không tìm thấy cửa sổ gốc để gửi. Kết quả: '+text;}}
-function clearSel(){selected=[];hit=new Set();$('sel').value='';if(dets.length)draw();}
-function sendSelected(){const text=$('sel').value.trim();
-if(!text){$('msg').textContent='Chưa chọn chữ nào.';return}
-sendAll(text);}
-$('cv').addEventListener('click',e=>{if(!PICK_MODE||!dets.length)return;
+$('cv').addEventListener('click',e=>{if(!PICK_MODE||!dets.length||sent)return;
 const r=$('cv').getBoundingClientRect();
 const x=(e.clientX-r.left)*($('cv').width/r.width)/scale,y=(e.clientY-r.top)*($('cv').height/r.height)/scale;
 let best=-1,area=1e18;dets.forEach((d,i)=>{const[a,b,c,f]=d.box;
 if(x>=a&&x<=c&&y>=b&&y<=f&&(c-a)*(f-b)<area){area=(c-a)*(f-b);best=i}});
-if(best>=0){selected.push(dets[best].text);hit.add(best);$('sel').value=selected.join(' ');draw();}});
+if(best>=0){hit=new Set([best]);draw();sendAll(dets[best].text);}});
 async function autoCapture(){if(busy||sent)return;busy=true;
 $('msg').textContent='Đang quét...';
 const d=await doCapture();busy=false;
@@ -561,7 +553,7 @@ dets=d.dets;hit=new Set();curW=d.w;curH=d.h;
 img.onload=()=>{$('live').style.display='none';$('cv').style.display='';draw();};img.src=d.image;
 if(!dets.length){$('msg').textContent='Không nhận diện được chữ nào, đang quét lại...';scheduleAuto(AUTO_DELAY_MS);return}
 if(PICK_MODE){
-$('msg').textContent='Tìm thấy '+dets.length+' chữ. Bấm vào chữ muốn chọn (có thể chọn nhiều), rồi bấm GỬI.';
+$('msg').textContent='Tìm thấy '+dets.length+' chữ. Bấm vào đúng chữ muốn chọn để điền ngay.';
 return;}
 // sắp xếp theo thứ tự đọc: trên->dưới (theo hàng), trong hàng thì trái->phải
 const ordered=dets.slice().sort((a,b)=>{
