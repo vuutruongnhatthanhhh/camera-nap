@@ -47,7 +47,7 @@ RTSP_URL = (f"rtsp://{quote(CAMERA_USER, safe='')}:{quote(CAMERA_PASS, safe='')}
 WEB_HOST = "0.0.0.0"
 WEB_PORT = int(os.environ.get("WEB_PORT", "5000"))
 WEB_USER = os.environ.get("WEB_USER", "admin")
-WEB_PASS = os.environ.get("WEB_PASS", "Admin123")
+WEB_PASS = os.environ.get("WEB_PASS", "Ngan@nhphat2026")
 WEB_PASS_HASH = generate_password_hash(WEB_PASS)
 
 ROI_X1, ROI_X2, ROI_Y1, ROI_Y2 = 0.20, 0.80, 0.20, 0.80
