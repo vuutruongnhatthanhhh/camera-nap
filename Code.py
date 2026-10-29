@@ -42,7 +42,7 @@ CAMERA_IP = os.environ.get("CAMERA_IP", "192.168.1.140")
 CAMERA_USER = os.environ.get("CAMERA_USER", "admin")
 CAMERA_PASS = os.environ.get("CAMERA_PASS", "Ngan@nhphat2026")
 RTSP_URL = (f"rtsp://{quote(CAMERA_USER, safe='')}:{quote(CAMERA_PASS, safe='')}"
-            f"@{CAMERA_IP}:554/Streaming/Channels/101")
+            f"@{CAMERA_IP}:554/Streaming/Channels/88")
 
 WEB_HOST = "0.0.0.0"
 WEB_PORT = int(os.environ.get("WEB_PORT", "5000"))
