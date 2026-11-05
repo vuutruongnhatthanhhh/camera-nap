@@ -3,3 +3,55 @@ __pycache__/
 *.pyc
 *.log
 product_images/
+# ==================================
+# Python
+# ==================================
+venv/
+.venv/
+venv311/
+env/
+__pycache__/
+*.py[cod]
+
+# ==================================
+# Environment and secrets
+# ==================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ==================================
+# IDE and AI tools
+# ==================================
+.vscode/
+.codex/
+**/.codex/
+
+# Codex databases and logs
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.log
+session_index.json
+model_cache.json
+deny_read_acl_state.json
+
+# ==================================
+# MediaMTX
+# ==================================
+mediamtx.exe
+
+# ==================================
+# Temporary files
+# ==================================
+temp/
+tmp/
+*.tmp
+.DS_Store
+Thumbs.db
