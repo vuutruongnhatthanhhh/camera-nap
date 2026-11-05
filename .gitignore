@@ -46,6 +46,7 @@ deny_read_acl_state.json
 # MediaMTX
 # ==================================
 mediamtx.exe
+config.local.yml
 
 # ==================================
 # Temporary files

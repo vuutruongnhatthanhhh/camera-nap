@@ -1,14 +1,29 @@
 window
 .venv\Scripts\activate.bat
-python ./Code.py
+python ./final.py
 
 ubuntu
 source .venv/bin/activate # nếu đang không ở trong venv
-python Code.py
+python final.py
+
+## MediaMTX (Docker)
+
+MediaMTX (HLS/RTSP/WebRTC cho web xem trực tiếp) chạy bằng Docker, không chạy trực tiếp trên máy nữa.
+
+Lần đầu deploy trên server (hoặc khi đổi IP/user/pass camera):
+```
+cp .env.example .env
+nano .env   # điền CAMERA_IP / CAMERA_USER / CAMERA_PASS thật
+./run-mediamtx.sh
+```
+`run-mediamtx.sh` tự đọc `.env`, sinh `config.local.yml` rồi `docker run` container tên `mediamtx` với `--restart unless-stopped` (tự chạy lại khi server reboot hoặc container crash). Chạy lại file này bất cứ khi nào sửa `.env`.
+
+Windows dùng `run-mediamtx.ps1` (hoặc double-click `run-mediamtx.bat`) - cùng logic, chỉ khác shell.
 
 áp dụng code mới trên server
 git pull origin main
 sudo systemctl restart camera-ocr
+./run-mediamtx.sh   # chỉ cần chạy lại nếu config.yml hoặc .env có thay đổi
 
 ## Luồng phát hiện và nhận diện
 

@@ -9,5 +9,5 @@ hls: yes
 
 paths:
   warehouse_cam:
-    source: rtsp://admin:Admin123@192.168.1.140:554/Streaming/Channels/102
+    source: __CAMERA_SOURCE__ # run-mediamtx.ps1 thay chỗ này bằng rtsp://user:pass@ip lấy từ .env
     sourceOnDemand: no
