@@ -1,6 +1,14 @@
 webrtc: yes
 rtsp: yes
 hls: yes
+
+# Bật HTTPS cho luồng HLS: khi web chính chạy https (USE_HTTPS=1), trình duyệt chặn
+# "mixed content" nếu HLS vẫn là http -> video camera IP không hiện. Dùng chung
+# cert.pem/key.pem đã tạo cho app Flask (xem README phần HTTPS).
+hlsEncryption: yes
+hlsServerKey: /config/key.pem
+hlsServerCert: /config/cert.pem
+
 paths:
   warehouse_cam:
     source: __CAMERA_SOURCE__ # run-mediamtx.ps1 thay chỗ này bằng rtsp://user:pass@ip lấy từ .env
