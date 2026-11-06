@@ -36,6 +36,10 @@ from waitress import serve
 # ============================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+from dotenv import load_dotenv  # noqa: E402
+
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+
 MONGO_HOST = os.environ.get("MONGO_HOST", "192.168.1.247")
 MONGO_PORT = int(os.environ.get("MONGO_PORT", "27017"))
 MONGO_USER = os.environ.get("MONGO_USER", "nap_readonly")
@@ -48,7 +52,7 @@ MONGO_URI = (
     f"{MONGO_HOST}:{MONGO_PORT}/{MONGO_DB_NAME}?authSource={MONGO_DB_NAME}"
 )
 
-CAMERA_IP = os.environ.get("CAMERA_IP", "192.168.1.140")
+CAMERA_IP = os.environ.get("CAMERA_IP", "192.168.1.233")
 CAMERA_USER = os.environ.get("CAMERA_USER", "admin")
 CAMERA_PASS = os.environ.get("CAMERA_PASS", "Admin123")
 RTSP_PORT = 554
@@ -2332,6 +2336,7 @@ if __name__ == "__main__":
         f" MediaMTX HLS    : http://{MEDIAMTX_HOST}:{MEDIAMTX_PORT}/"
         f"{MEDIAMTX_STREAM_PATH}/index.m3u8"
     )
+    print(f" Camera          : {CAMERA_USER}@{CAMERA_IP} (channel OCR={STREAM_CHANNEL_OCR}, preview={STREAM_CHANNEL_PREVIEW})")
     print("=" * 60)
 
     try:
