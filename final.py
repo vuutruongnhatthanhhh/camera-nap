@@ -1418,6 +1418,13 @@ padding:5px 11px;font-size:13px;cursor:pointer}
 table{border-collapse:collapse;width:100%;min-width:620px}
 th,td{border-bottom:1px solid var(--line);padding:10px;text-align:left;font-size:14px}
 th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.7px}
+.name-cell{display:flex;align-items:center;gap:8px}
+.name-cell span{flex:1}
+.copy-btn{flex:none;width:28px;height:28px;padding:0;display:flex;align-items:center;justify-content:center;
+  background:transparent;border:1px solid transparent;border-radius:6px;color:var(--muted);cursor:pointer}
+.copy-btn:hover{border-color:var(--line);color:var(--text)}
+.copy-btn.copied{color:var(--accent);border-color:var(--accent)}
+.copy-btn svg{width:16px;height:16px;pointer-events:none}
 .empty{text-align:center;color:var(--muted);padding:22px}
 #selected{color:var(--accent);font-size:13px;margin-bottom:10px}
 #selected.warning{color:var(--danger);font-weight:700}
@@ -1792,10 +1799,34 @@ function renderResults(rows){
   setBest(rows[0]);
   rows.forEach(p=>{
     const tr=document.createElement("tr");
-    [p.product_name,p.location,p.updated_at,p.quantity,(p.score!=null?p.score+"%":"")].forEach(v=>{
+    const nameTd=document.createElement("td");
+    nameTd.innerHTML='<div class="name-cell"><span></span>'
+      +'<button type="button" class="copy-btn" title="Copy tên sản phẩm">'
+      +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
+      +'<rect x="9" y="9" width="12" height="12" rx="2"/>'
+      +'<path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>'
+      +'</svg></button></div>';
+    nameTd.querySelector("span").textContent=p.product_name??"";
+    nameTd.querySelector(".copy-btn").addEventListener("click",(e)=>copyProductName(e.currentTarget,p.product_name));
+    tr.appendChild(nameTd);
+    [p.location,p.updated_at,p.quantity,(p.score!=null?p.score+"%":"")].forEach(v=>{
       const td=document.createElement("td");td.textContent=v??"";tr.appendChild(td);});
     tb.appendChild(tr);
   });
+}
+async function copyProductName(btn,name){
+  if(!name)return;
+  try{
+    await navigator.clipboard.writeText(name);
+  }catch(e){
+    const ta=document.createElement("textarea");
+    ta.value=name;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand("copy");}catch(e2){}
+    document.body.removeChild(ta);
+  }
+  btn.classList.add("copied");
+  setTimeout(()=>btn.classList.remove("copied"),1200);
 }
 async function selectDet(i){
   selectedIndex=i;renderChips();
