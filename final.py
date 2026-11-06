@@ -122,8 +122,8 @@ OCR_ACCEPT_CONF = _envf("OCR_ACCEPT_CONF", "0.60")  # độ tin cậy trung bìn
 OCR_FAST_CONF = _envf("OCR_FAST_CONF", "0.85")      # >= mức này ngay lần quét đầu: chốt + tra kho tức thì
 OCR_EXACT_HIT_CONF = _envf("OCR_EXACT_HIT_CONF", "0.50")  # chuỗi trùng mã trong kho + conf >= mức này: chốt sớm
 OCR_MAX_ATTEMPTS = _envi("OCR_MAX_ATTEMPTS", "3")   # số lần thử tối đa nếu chưa đủ tin cậy
-OCR_RETRY_GAP_SEC = 0.15                            # nghỉ ngắn để lấy frame mới hơn khi thử lại
-OCR_RETRY_FRAME_WAIT_SEC = 0.5
+OCR_RETRY_GAP_SEC = 0.05                            # nghỉ ngắn để lấy frame mới hơn khi thử lại
+OCR_RETRY_FRAME_WAIT_SEC = 0.15
 OCR_TEXTLINE_ORIENT = os.environ.get("OCR_TEXTLINE_ORIENT", "0") == "1"  # tắt = nhanh hơn
 OCR_CPU_THREADS = _envi("OCR_CPU_THREADS", "0")     # 0 = để Paddle tự chọn
 LOOKUP_MAX_TEXTS = _envi("LOOKUP_MAX_TEXTS", "12")  # tối đa số dòng chữ đem đi đối chiếu kho
